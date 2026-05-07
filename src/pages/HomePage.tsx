@@ -1,69 +1,37 @@
-import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 
-interface Athlete {
-  id: number;
-  name?: string;
-  country?: string;
-  results?: any[];
-}
+export const HomePage = () => {
+    return (
+        <div style={{ 
+            padding: "50px", 
+            textAlign: "center", 
+            backgroundColor: "#f9f9f9", 
+            minHeight: "80vh" 
+        }}>
+            <h1>Tere tulemast Kümnevõistluse Portaali! 🏃‍♂️🏆</h1>
+            <p style={{ fontSize: "1.2rem", color: "#666" }}>
+                Siit leiad värskeimad tulemused ja ametliku edetabeli.
+            </p>
 
-function HomePage() {
-  const [athletes, setAthletes] = useState<Athlete[]>([]);
-  const [page, setPage] = useState(0);
-  const [totalPages, setTotalPages] = useState(1);
+            <div style={{ marginTop: "30px", display: "flex", justifyContent: "center", gap: "20px" }}>
+                <Link to="/scores">
+                    <button style={{ padding: "15px 30px", fontSize: "1rem", cursor: "pointer" }}>
+                        Vaata edetabelit
+                    </button>
+                </Link>
+                <Link to="/admin/manage-athletes">
+                    <button style={{ padding: "15px 30px", fontSize: "1rem", cursor: "pointer", backgroundColor: "#333", color: "white" }}>
+                        Admini paneel
+                    </button>
+                </Link>
+            </div>
 
-  useEffect(() => {
-    const url = new URL("http://localhost:8080/athletes");
-    url.searchParams.append("page", page.toString());
-    url.searchParams.append("size", "10");
+            <div style={{ marginTop: "50px" }}>
+                <h3>Kümnevõistluse alad:</h3>
+                <p>100m • Kaugushüpe • Kuulitõuge • Kõrgushüpe • 400m • 110m tõkked • Kettaheide • Teivashüpe • Odavise • 1500m</p>
+            </div>
+        </div>
+    );
+};
 
-    fetch(url.toString())
-      .then((res) => res.json())
-      .then((json) => {
-        if (json.content) {
-          setAthletes(json.content);
-          setTotalPages(json.totalPages || 1);
-        } else if (Array.isArray(json)) {
-          setAthletes(json);
-        }
-      })
-      .catch((err) => console.error(err));
-  }, [page]);
-
-  return (
-    <div>
-      <h2>Avaleht - Kõik sportlased</h2>
-      {athletes.length === 0 ? (
-        <p>Sportlasi pole veel lisatud.</p>
-      ) : (
-        <>
-          <ul>
-            {athletes.map((athlete) => (
-              <li key={athlete.id}>
-                {athlete.name || `Sportlane #${athlete.id}`} {athlete.country ? `(${athlete.country})` : ""}
-              </li>
-            ))}
-          </ul>
-          
-          <div style={{ marginTop: "20px" }}>
-            <button 
-              onClick={() => setPage(p => Math.max(0, p - 1))} 
-              disabled={page === 0}
-            >
-              Eelmine
-            </button>
-            <span style={{ margin: "0 15px" }}>Lehekülg {page + 1}</span>
-            <button 
-              onClick={() => setPage(p => p + 1)}
-              disabled={athletes.length < 10 && page + 1 >= totalPages}
-            >
-              Järgmine
-            </button>
-          </div>
-        </>
-      )}
-    </div>
-  );
-}
-
-export default HomePage;
+export default HomePage

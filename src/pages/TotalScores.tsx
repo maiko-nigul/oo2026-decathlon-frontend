@@ -1,135 +1,67 @@
 import { useEffect, useState } from "react";
+import type { Athlete } from "../models/Athlete";
+import type { PageResponse } from "../models/PageResponse";
 
-interface Result {
-  id: number;
-  discipline: string;
-  value: number;
-  points: number;
-}
+export const TotalScores = () => {
+    const [athletePage, setAthletePage] = useState<PageResponse<Athlete> | null>(null);
+    const [page, setPage] = useState(0);
+    const [country, setCountry] = useState("");
 
-interface Athlete {
-  id: number;
-  name?: string;
-  country?: string;
-  results?: Result[];
-}
+    useEffect(() => {
+        const url = `${import.meta.env.VITE_BACK_URL}/athletes?page=${page}&size=10&sort=totalPoints,desc&country=${country}`;
+        
+        fetch(url)
+            .then(res => res.json())
+            .then(json => setAthletePage(json))
+            .catch(err => console.error("Viga andmete laadimisel:", err));
+    }, [page, country]);
 
-function TotalScores() {
-  const [athletes, setAthletes] = useState<Athlete[]>([]);
-  const [page, setPage] = useState(0);
-  const [totalPages, setTotalPages] = useState(1);
-  const [country, setCountry] = useState("");
-  const [sortOrder, setSortOrder] = useState("desc");
+    return (
+        <div style={{ padding: "20px" }}>
+            <h1>Kümnevõistluse edetabel</h1>
 
-  useEffect(() => {
-    // Construed backend query URL based on requested parameters
-    const url = new URL("http://localhost:8080/athletes");
-    url.searchParams.append("page", page.toString());
-    url.searchParams.append("size", "10");
-    
-    if (country) {
-      url.searchParams.append("country", country);
-    }
-    
-    // Standard Spring Data JPA sorting format. Adjust field name 'score' if backend uses a different name (e.g. 'totalScore')
-    url.searchParams.append("sort", `score,${sortOrder}`);
+            <div style={{ marginBottom: "15px" }}>
+                <input 
+                    type="text" 
+                    placeholder="Filtreeri riigi järgi..." 
+                    value={country}
+                    onChange={(e) => { setCountry(e.target.value); setPage(0); }}
+                    style={{ padding: "8px", width: "200px" }}
+                />
+            </div>
 
-    fetch(url.toString())
-      .then((res) => res.json())
-      .then((json) => {
-        // Handle both Spring Page object and simple array responses
-        if (json.content) {
-          setAthletes(json.content);
-          setTotalPages(json.totalPages || 1);
-        } else if (Array.isArray(json)) {
-          setAthletes(json);
-        }
-      })
-      .catch((err) => console.error(err));
-  }, [page, country, sortOrder]);
+            <table border={1} style={{ width: "100%", borderCollapse: "collapse" }}>
+                <thead style={{ backgroundColor: "#f0f0f0" }}>
+                    <tr>
+                        <th>Koht</th>
+                        <th>Nimi</th>
+                        <th>Riik</th>
+                        <th>Punktid</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {athletePage?.content.map((athlete, index) => (
+                        <tr key={athlete.id}>
+                            <td>{page * 10 + index + 1}.</td>
+                            <td><strong>{athlete.name}</strong></td>
+                            <td>{athlete.country}</td>
+                            <td>{athlete.totalPoints}</td>
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
 
-  return (
-    <div>
-      <h2>Kõik skoorid (Edetabel)</h2>
-
-      <div style={{ marginBottom: "20px" }}>
-        <label>
-          Filtreeri riigi järgi:
-          <input 
-            type="text" 
-            value={country} 
-            onChange={(e) => {
-              setCountry(e.target.value);
-              setPage(0); // Reset to first page when filtering
-            }} 
-            placeholder="nt. EST" 
-            style={{ marginLeft: "10px", marginRight: "20px" }}
-          />
-        </label>
-
-        <label>
-          Sorteeri tulemuse alusel:
-          <select 
-            value={sortOrder} 
-            onChange={(e) => {
-              setSortOrder(e.target.value);
-              setPage(0); // Reset to first page when sorting changes
-            }}
-            style={{ marginLeft: "10px" }}
-          >
-            <option value="desc">Kahanevalt (Suurem skoor esimesena)</option>
-            <option value="asc">Kasvavalt (Väiksem skoor esimesena)</option>
-          </select>
-        </label>
-      </div>
-
-      {athletes.length === 0 ? (
-        <p>Sportlasi pole veel lisatud või ei leitud antud riigiga.</p>
-      ) : (
-        <table border={1} cellPadding={8} style={{ borderCollapse: "collapse", width: "100%" }}>
-          <thead>
-            <tr>
-              <th>Nimi</th>
-              <th>Riik</th>
-              <th>Koguskoor</th>
-            </tr>
-          </thead>
-          <tbody>
-            {athletes.map((athlete) => {
-              const totalScore = athlete.results?.reduce(
-                (sum, r) => sum + r.points,
-                0
-              ) || 0;
-
-              return (
-                <tr key={athlete.id}>
-                  <td>{athlete.name || `Sportlane #${athlete.id}`}</td>
-                  <td>{athlete.country || "-"}</td>
-                  <td>{totalScore}</td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      )}
-
-      <div style={{ marginTop: "20px" }}>
-        <button 
-          onClick={() => setPage(p => Math.max(0, p - 1))} 
-          disabled={page === 0}
-        >
-          Eelmine
-        </button>
-        <span style={{ margin: "0 15px" }}>Lehekülg {page + 1}</span>
-        <button 
-          onClick={() => setPage(p => p + 1)}
-          disabled={athletes.length < 10 && page + 1 >= totalPages}
-        >
-          Järgmine
-        </button>
-      </div>
-    </div>
-  );
-}
-
-export default TotalScores;
+            <div style={{ marginTop: "15px" }}>
+                <button disabled={page === 0} onClick={() => setPage(page - 1)}>Eelmine</button>
+                <span style={{ margin: "0 15px" }}>Leht {page + 1} / {athletePage?.totalPages || 1}</span>
+                <button 
+                    disabled={page >= (athletePage?.totalPages || 1) - 1} 
+                    onClick={() => setPage(page + 1)}
+                >
+                    Järgmine
+                </button>
+            </div>
+        </div>
+    );
+};
+export default TotalScores
